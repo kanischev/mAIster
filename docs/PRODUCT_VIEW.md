@@ -330,20 +330,44 @@ Need:
 - run/check commands visible in UI;
 - cleanup.
 
-### Gap 9. Minimal success definition
+### Gap 9. Phase 2 success definition
 
-Analytics can wait, but MVP needs a simple success bar.
+Analytics can wait, but Phase 2 needs a simple success bar beyond the MVP
+launch loop.
 
-Suggested MVP success:
+Suggested Phase 2 success:
 
 - connect one real repo;
 - launch one backlog task through Flow;
 - create workspace automatically;
-- run Claude Code headlessly;
+- run Claude Code or Codex headlessly through ACP;
 - get diff + AI-Judge/review artifact;
 - human approves/request changes from Web UI;
 - merge/PR path exists;
 - project memory gets at least one useful lesson.
+
+### Gap 10. Harness maturity is not explicit enough
+
+Phase 2 currently reads like a list of extra integrations. That is too weak.
+Daily AI-coding work fails for more basic reasons: the agent cannot see the
+running app, reads stale project context, gets too many broad tools, hides
+important events in logs, burns tokens on noisy command output and runs outside
+clear safety boundaries.
+
+Need Phase 2 to define the operating harness:
+
+- **eyes**: preview URLs, browser automation, screenshots, DOM inspection and
+  user-flow checks;
+- **knowledge**: curated local references, short project rules, dependency
+  notes and rule freshness review;
+- **hands**: narrow MCP/tools/scripts with explicit permissions, not broad
+  tool bundles by default;
+- **automation**: hooks, skills, slash commands and recurring checks surfaced
+  as project automation;
+- **observability**: run summaries, event history, notifications and health
+  signals;
+- **economics**: token, context, browser/process memory and noisy-command
+  cost tracking.
 
 ## 11. MVP / Phase 2 / Later
 
@@ -355,27 +379,31 @@ parallel, on one host, from one Web UI.
 Include:
 
 1. **Multi-project registry** — N projects per host, each configured by its
-   own `maister.yaml` v1 (`project` block + `flows[]`). Registration via UI
-   form (path to dir) or `MAISTER_PROJECTS_DIR` env **recursive**
-   auto-discovery. `slug` and `repo_path` are unique across projects (one
-   repo = one project); collisions reject the new registration.
+   own `maister.yaml` v2 (`project`, `executors[]`, `default_executor`,
+   `flows[]`). Registration via UI form (path to dir) or
+   `MAISTER_PROJECTS_DIR` env **recursive** auto-discovery. `slug` and
+   `repo_path` are unique across projects (one repo = one project);
+   collisions reject the new registration.
 2. **Portfolio home (superset.sh-style)** — single grid of every active
    workspace across all projects: project · branch · status · last activity ·
    quick actions (View / Resume / Abandon). Filter by project + status.
 3. **Per-project task board** — 2 columns `Backlog | In Flight`. In Flight
-   holds `Running | NeedsInput | Review | Crashed`. A Backlog card has a
-   **Launch** button (no drag-and-drop in POC); click runs preconditions and
-   creates a Run. Done/Abandoned in a filter tab.
+   holds `Running | NeedsInput | NeedsInputIdle | Review | Crashed`. A
+   Backlog card has a **Launch** button (no drag-and-drop in POC); click runs
+   preconditions and creates a Run. Done/Abandoned in a filter tab.
 4. **Task creation** — title + prompt + Flow dropdown (from project
-   `flows[]`). A task ↔ Run is **1:N** — a failed/abandoned run sends the
-   task back to Backlog so the user can click Launch again (ralph-loop /
-   retry).
+   `flows[]`) + optional executor override (from project `executors[]`). A
+   task ↔ Run is **1:N** — a failed/abandoned run sends the task back to
+   Backlog so the user can click Launch again (ralph-loop / retry).
 5. **Workspace lifecycle via git worktree** — per-run isolated subtree under
    `.maister/<project-slug>/runs/<run-id>/`.
-6. **Headless harness with Claude Code** as first executor (hard-coded).
+6. **Headless ACP harness with Claude Code and Codex** as POC executors.
+   Per-run executor override resolves through launcher, project Flow override,
+   project default and Flow recommendation.
 7. **Web UI run monitor** — live SSE log stream, status, HITL surface.
-8. **Block-based HITL** — `needs-input.json` artifact → form from
-   `response_schema` → atomic write of `input-<block-id>.json` → resume.
+8. **Block-based HITL** — ACP permission requests or `needs-input.json`
+   artifact → form from `form_schema` → atomic write of
+   `input-<step-id>.json` → live delivery or checkpoint resume.
 9. **Basic diff viewer** — raw `git diff` in `<pre>` (no syntax highlighting).
 10. **Manual merge path** — `git merge --no-ff` on parent's `main_branch`;
     conflict aborts and surfaces in UI.
@@ -384,7 +412,7 @@ Include:
 
 Do not include in MVP:
 
-- multiple executor adapters;
+- Cursor / opencode / Aider executor adapters;
 - autonomous task pulling;
 - background agents;
 - full A/B;
@@ -399,26 +427,74 @@ Do not include in MVP:
 - cross-project task moves;
 - GitHub issue / Linear / YouGile sync.
 
-### Phase 2 — scale within personal/team usage
+### Phase 2 — mature the operating harness
+
+Goal: let one owner or a small team run more parallel agent work without
+babysitting terminals, leaking secrets, drowning in logs or paying for tool
+noise.
 
 Include:
 
-- more Flow templates;
-- richer Flow customization;
-- agent self-selection / Flow initiation;
-- background project agents;
-- richer diff review;
-- workspace preview/ports;
-- CI/log intake;
-- YouGile/GitHub issue sync;
-- basic noise control;
-- Telegram notifications/approvals.
+1. **Visual validation layer**
+   - workspace preview URLs and port mapping;
+   - Playwright-backed browser checks as Flow steps;
+   - screenshots, DOM snapshots and user-flow traces attached to runs;
+   - clear boundary: agents can detect broken UI states, humans still judge
+     product taste and acceptance.
+
+2. **Curated project knowledge**
+   - managed `refs/` or docs extracts for dependency APIs and project-specific
+     conventions;
+   - rule freshness checks for `CLAUDE.md`, `AGENTS.md`, skills and Flow docs;
+   - proposed lesson → accepted rule workflow with source trace to the run,
+     review, incident or bug that produced it;
+   - stale/deprecated rule cleanup so project memory does not become noise.
+
+3. **Narrow tools and permissioned hands**
+   - project-scoped MCP/tool registry with capability labels and tool-count
+     budgets;
+   - preference for small task-shaped scripts/MCP servers over broad bundles;
+   - DevContainer or equivalent sandbox profile for tools that touch files,
+     terminals, network or secrets;
+   - approve/deny policy for dangerous operations before enabling
+     multi-agent orchestration.
+
+4. **Automation as product surface**
+   - reusable hooks, skills, slash commands and Flow snippets visible in the
+     project settings;
+   - standard hooks for formatting, linting, status pings and review checks;
+   - sub-agent style checks for search, routine QA and architecture review
+     without polluting the main run context.
+
+5. **Observability and attention routing**
+   - run event history, state transitions and recovery events;
+   - finish/block/review notifications in Web UI first, Telegram later;
+   - per-project "needs you" inbox across questions, approvals, review
+     requests and merge decisions;
+   - short run summaries that answer: what changed, what passed, what failed,
+     what needs a human.
+
+6. **Cost and resource economics**
+   - token and context cost per run, step, executor and tool surface;
+   - noisy-command compaction for tests, git output, linters and builds;
+   - cache-resume cost tracking for checkpointed sessions;
+   - browser/process memory visibility for parallel runs on small hosts;
+   - budget thresholds that warn first and enforce later.
+
+7. **Flow and intake expansion**
+   - more Flow templates: bugfix, feature, review, requirements
+     clarification, system analysis, incident/log analysis, docs update and
+     dependency update;
+   - richer Flow customization without a general-purpose Flow designer;
+   - CI/log intake and YouGile/GitHub issue sync after noise controls exist;
+   - background project agents only after draft/publish, dedup, severity and
+     cooldown controls are in place.
 
 ### Later
 
 Include:
 
-- multiple executors: opencode, Aider, OpenHands;
+- additional executors: opencode, Aider, OpenHands;
 - A/B parallel experiments;
 - model/provider routing;
 - durable orchestration if needed;
