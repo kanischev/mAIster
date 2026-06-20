@@ -206,6 +206,21 @@ describe("ReviewPanel — base→run→target review surface (M18 T4.2)", () => 
     expect(html).toContain("git merge --no-ff maister/feature-x");
   });
 
+  it("uses the display parent repo path in the conflict card", () => {
+    const html = render({
+      displayParentRepoPath: "<maister_repos>/myapp",
+      conflict: {
+        parentRepoPath: "/Users/kaa/.maister/repos/myapp",
+        targetBranch: "release",
+        runBranch: "maister/feature-x",
+        command: "git merge --no-ff maister/feature-x",
+      },
+    } as Partial<ReviewPanelProps>);
+
+    expect(html).toContain("&lt;maister_repos&gt;/myapp");
+    expect(html).not.toContain("/Users/kaa/.maister/repos/myapp");
+  });
+
   it("blocks Promote behind an explicit ack when the diff is truncated (regression)", () => {
     const html = render({
       diff: { files: [], perFile: [], truncated: true },
